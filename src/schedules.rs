@@ -16,13 +16,6 @@ impl Schedules {
         }
     }
 
-    pub(crate) fn from_array<const N: usize>(schedules: [Schedule; N]) -> Self {
-        match N {
-            1 => Self::One(schedules[0]),
-            _ => Self::Many(schedules.into()),
-        }
-    }
-
     #[inline]
     pub(crate) fn next_occurrence<Tz>(&self, now: DateTime<Tz>) -> Option<DateTime<Tz>>
     where
