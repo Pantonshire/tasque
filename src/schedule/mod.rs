@@ -19,8 +19,8 @@ const MIN_DAYS: u8 = 28;
 /// # use std::num::NonZeroU8;
 /// # use tasque::Schedule;
 /// Schedule::new_every_day()
-///     .at_every_nth_minute(NonZeroU8::new(6).unwrap())
-///     .at_second(30)
+///     .at_every_nth_hour(NonZeroU8::new(6).unwrap())
+///     .at_minute(30)
 /// # ;
 /// ```
 #[derive(Clone, Copy, Default, Debug)]
