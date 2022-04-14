@@ -1,19 +1,18 @@
 #![warn(clippy::pedantic)]
 
-pub mod task_time;
-mod task_time_buf;
-mod time_val;
+pub mod schedule;
+mod schedules;
 
 use std::marker::PhantomData;
+use std::ops::{Range, RangeInclusive};
 use std::thread;
 use std::time::Duration as StdDuration;
 
 use chrono::{DateTime, Datelike, Duration, Local, TimeZone, Timelike, Utc};
 
-use task_time_buf::TaskTimeBuf;
+use schedules::Schedules;
 
-pub use task_time::TaskTime;
-pub use time_val::{SpecificTime, TimeVal};
+pub use schedule::Schedule;
 
 pub struct Scheduler<Id, Tz>
 where
@@ -177,7 +176,7 @@ where
     Tz::Offset: Copy,
 {
     identifier: Id,
-    times: Vec<TaskTime>,
+    times: Vec<Schedule>,
     _tz_marker: PhantomData<Tz>,
 }
 
@@ -197,19 +196,19 @@ where
 
     #[must_use]
     pub fn build(self) -> Task<Id, Tz> {
-        Task::new(self.identifier, TaskTimeBuf::new_from_vec(self.times))
+        Task::new(self.identifier, Schedules::from_vec(self.times))
     }
 
     #[must_use]
-    pub fn at_time(mut self, time: TaskTime) -> Self {
+    pub fn at(mut self, time: Schedule) -> Self {
         self.times.push(time);
         self
     }
 
     #[must_use]
-    pub fn at_times<T>(mut self, times: T) -> Self
+    pub fn at_several<T>(mut self, times: T) -> Self
     where
-        T: IntoIterator<Item = TaskTime>,
+        T: IntoIterator<Item = Schedule>,
     {
         self.times.extend(times);
         self
@@ -222,7 +221,7 @@ where
     Tz::Offset: Copy,
 {
     identifier: Id,
-    schedule: TaskTimeBuf,
+    schedule: Schedules,
     next_time: Option<DateTime<Tz>>,
 }
 
@@ -236,30 +235,7 @@ where
         TaskBuilder::new(id)
     }
 
-    #[must_use]
-    pub fn single_time(id: Id, time: TaskTime) -> Self {
-        Self::new(id, TaskTimeBuf::new_single(time))
-    }
-
-    #[must_use]
-    pub fn from_time_array<const N: usize>(id: Id, times: [TaskTime; N]) -> Self {
-        Self::new(id, TaskTimeBuf::new_from_array(times))
-    }
-
-    #[must_use]
-    pub fn from_time_vec(id: Id, times: Vec<TaskTime>) -> Self {
-        Self::new(id, TaskTimeBuf::new_from_vec(times))
-    }
-
-    #[must_use]
-    pub fn from_time_iter<T>(id: Id, times: T) -> Self
-    where
-        T: IntoIterator<Item = TaskTime>,
-    {
-        Self::new(id, TaskTimeBuf::new_from_vec(times.into_iter().collect()))
-    }
-
-    fn new(id: Id, schedule: TaskTimeBuf) -> Self {
+    fn new(id: Id, schedule: Schedules) -> Self {
         Self {
             identifier: id,
             schedule,
@@ -295,5 +271,32 @@ impl TimeZoneExt for Local {
     #[inline]
     fn current_datetime() -> DateTime<Self> {
         Local::now()
+    }
+}
+
+pub trait IntoInclusiveRange<T: Ord> {
+    /// If `Some((start, end))` is returned, it should always satisfy `start <= end`. In cases
+    /// where this condition cannot be satisfied, `None` should be returned instead.
+    fn into_inclusive_range(self) -> Option<(T, T)>;
+}
+
+impl IntoInclusiveRange<u8> for RangeInclusive<u8> {
+    fn into_inclusive_range(self) -> Option<(u8, u8)> {
+        let range @ (start, end) = (*self.start(), *self.end());
+        if start <= end {
+            Some(range)
+        } else {
+            None
+        }
+    }
+}
+
+impl IntoInclusiveRange<u8> for Range<u8> {
+    fn into_inclusive_range(self) -> Option<(u8, u8)> {
+        if self.start < self.end {
+            Some((self.start, self.end - 1))
+        } else {
+            None
+        }
     }
 }
