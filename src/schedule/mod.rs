@@ -12,6 +12,17 @@ use component::Component;
 
 const MIN_DAYS: u8 = 28;
 
+/// Represents the set of times at which a particular task should be run. This is comparable to a
+/// cron schedule expression. For example, the equivalent of `30 */6 * * *` would be:
+/// 
+/// ```
+/// # use std::num::NonZeroU8;
+/// # use tasque::Schedule;
+/// Schedule::new_every_day()
+///     .at_every_nth_minute(NonZeroU8::new(6).unwrap())
+///     .at_second(30)
+/// # ;
+/// ```
 #[derive(Clone, Copy, Default, Debug)]
 pub struct Schedule {
     day: Component<30>,
@@ -215,6 +226,8 @@ impl Schedule {
         Ok(Self { minute: Component::new(*range.start(), *range.end(), n).map_err(|_| Error)?, ..self })
     }
 
+    /// Returns a copy of the schedule where the second must be equal to the specific given second.
+    /// If the given second is greater than or equal to 60, the second modulo 60 will be used.
     #[must_use]
     pub fn at_second(self, second: u8) -> Self {
         Self { 
@@ -226,16 +239,19 @@ impl Schedule {
         }
     }
 
+    /// Returns a copy of the schedule where the second must be equal to zero.
     #[must_use]
     pub fn at_zero_second(self) -> Self {
         Self { second: Component::exactly_zero(), ..self }
     }
 
+    /// Returns a copy of the schedule with no restrictions on the second.
     #[must_use]
     pub fn at_every_second(self) -> Self {
         Self { second: Component::every(), ..self }
     }
 
+    /// Returns a copy of the schedule where the second must be some multiple of the given `n`.
     #[must_use]
     pub fn at_every_nth_second(self, n: NonZeroU8) -> Self {
         Self { second: Component::every_step(n), ..self }
