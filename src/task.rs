@@ -1,54 +1,26 @@
 use crate::schedule::Schedule;
 use crate::schedules::Schedules;
 
-pub struct Builder<Id> {
-    id: Id,
-    times: Vec<Schedule>,
-}
-
-impl<Id> Builder<Id> {
-    #[must_use]
-    pub fn new(id: Id) -> Self {
-        Self {
-            id,
-            times: Vec::new(),
-        }
-    }
-
-    #[must_use]
-    pub fn build(self) -> Task<Id> {
-        Task::new(self.id, Schedules::from_vec(self.times))
-    }
-
-    #[must_use]
-    pub fn at(mut self, time: Schedule) -> Self {
-        self.times.push(time);
-        self
-    }
-
-    #[must_use]
-    pub fn at_several<T>(mut self, times: T) -> Self
-    where
-        T: IntoIterator<Item = Schedule>,
-    {
-        self.times.extend(times);
-        self
-    }
-}
-
 pub struct Task<Id> {
     id: Id,
     schedule: Schedules,
 }
 
 impl<Id> Task<Id> {
-    #[must_use]
-    pub fn builder(id: Id) -> Builder<Id> {
-        Builder::new(id)
+    pub fn new(id: Id, schedule: Schedule) -> Self {
+        Self::_new(id, Schedules::One(schedule))
+    }
+
+    pub fn new_multi_schedule<T: IntoIterator<Item = Schedule>>(id: Id, schedules: T) -> Self {
+        Self::_new(id, Schedules::from_vec(schedules.into_iter().collect()))
+    }
+
+    pub fn new_multi_schedule_vec(id: Id, schedules: Vec<Schedule>) -> Self {
+        Self::_new(id, Schedules::from_vec(schedules))
     }
 
     #[must_use]
-    fn new(id: Id, schedule: Schedules) -> Self {
+    fn _new(id: Id, schedule: Schedules) -> Self {
         Self {
             id,
             schedule,

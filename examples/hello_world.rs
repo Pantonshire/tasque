@@ -18,8 +18,8 @@ fn main() {
         .unwrap();
 
     let scheduler = scheduler::new_utc::<TaskId>()
-        .with(Task::builder(TaskId::Task1).at(task1_schedule).build())
-        .with(Task::builder(TaskId::Task2).at(task2_schedule).build());
+        .with(Task::new(TaskId::Task1, task1_schedule))
+        .with(Task::new(TaskId::Task2, task2_schedule));
 
     for id in scheduler.take(4) {
         run_task(id);
