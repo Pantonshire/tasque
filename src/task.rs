@@ -8,7 +8,7 @@ pub struct Task<Id> {
 
 impl<Id> Task<Id> {
     pub fn new(id: Id, schedule: Schedule) -> Self {
-        Self::_new(id, Schedules::One(schedule))
+        Self::new_internal(id, Schedules::One(schedule))
     }
 
     pub fn new_multi_schedule<T: IntoIterator<Item = Schedule>>(id: Id, schedules: T) -> Self {
@@ -16,11 +16,11 @@ impl<Id> Task<Id> {
     }
 
     pub fn new_multi_schedule_vec(id: Id, schedules: Vec<Schedule>) -> Self {
-        Self::_new(id, Schedules::from_vec(schedules))
+        Self::new_internal(id, Schedules::from_vec(schedules))
     }
 
     #[must_use]
-    fn _new(id: Id, schedule: Schedules) -> Self {
+    fn new_internal(id: Id, schedule: Schedules) -> Self {
         Self {
             id,
             schedule,
