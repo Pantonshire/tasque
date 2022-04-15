@@ -1,6 +1,5 @@
 use std::num::NonZeroU8;
-
-use tasque::*;
+use tasque::{Task, Schedule, scheduler};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum TaskId {
@@ -18,9 +17,9 @@ fn main() {
         .at_every_nth_second_between(1..=59, nonzero_5)
         .unwrap();
 
-    let mut scheduler = Scheduler::<TaskId, _>::new_utc();
-    scheduler.insert(Task::builder(TaskId::Task1).at(task1_schedule).build());
-    scheduler.insert(Task::builder(TaskId::Task2).at(task2_schedule).build());
+    let scheduler = scheduler::new_utc::<TaskId>()
+        .with(Task::builder(TaskId::Task1).at(task1_schedule).build())
+        .with(Task::builder(TaskId::Task2).at(task2_schedule).build());
 
     for id in scheduler.take(4) {
         run_task(id);
