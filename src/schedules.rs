@@ -1,7 +1,7 @@
 use chrono::DateTime;
 
 use crate::schedule::Schedule;
-use crate::TimeZoneExt;
+use crate::timezone_ext::TimeZoneExt;
 
 pub(crate) enum Schedules {
     One(Schedule),

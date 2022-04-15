@@ -3,15 +3,44 @@ use std::time::Duration as StdDuration;
 
 use chrono::{DateTime, Datelike, Duration, Local, Timelike, Utc};
 
-use crate::TimeZoneExt;
-use crate::Task;
+use crate::timezone_ext::TimeZoneExt;
+use crate::task::Task;
+
+struct TaskEntry<Id, Tz>
+where
+    Tz: TimeZoneExt,
+    Tz::Offset: Copy,
+{
+    task: Task<Id>,
+    next_time: Option<DateTime<Tz>>,
+}
+
+impl<Id, Tz> TaskEntry<Id, Tz>
+where
+    Tz: TimeZoneExt,
+    Tz::Offset: Copy,
+{
+    fn new(task: Task<Id>) -> Self {
+        Self {
+            task,
+            next_time: None,
+        }
+    }
+
+    fn update_next_time(&mut self, now: DateTime<Tz>) {
+        match self.next_time {
+            Some(next_time) if now < next_time => (),
+            _ => self.next_time = self.task.schedule().next_occurrence(now),
+        }
+    }
+}
 
 pub struct ManualSleep<Id, Tz>
 where
     Tz: TimeZoneExt,
     Tz::Offset: Copy,
 {
-    tasks: Vec<Task<Id, Tz>>,
+    tasks: Vec<TaskEntry<Id, Tz>>,
     next_ids_buf: Vec<Id>,
     previous_time: Option<DateTime<Tz>>,
 }
@@ -48,31 +77,31 @@ where
     Tz::Offset: Copy,
 {
     #[must_use]
-    pub fn with(self, task: Task<Id, Tz>) -> Self {
+    pub fn with(self, task: Task<Id>) -> Self {
         // Little trick to avoid polluting the function signature with "mut".
         let mut this = self;
         this.insert(task);
         this
     }
 
-    pub fn insert(&mut self, task: Task<Id, Tz>) -> bool {
+    pub fn insert(&mut self, task: Task<Id>) -> bool {
         // Remove existing tasks with IDs equal to the new task's ID, then add the new task. This
         // would be more efficient with a hash map, but we use a vec instead because we will be
         // iterating over the tasks much more often than we will be adding new tasks.
-        let removed = self.remove(task.identifier);
-        self.tasks.push(task);
+        let removed = self.remove(task.id());
+        self.tasks.push(TaskEntry::new(task));
         removed
     }
 
     pub fn remove(&mut self, id: Id) -> bool {
         let old_len = self.tasks.len();
-        self.tasks.retain(|existing_task| existing_task.identifier != id);
+        self.tasks.retain(|entry| entry.task.id() != id);
         self.tasks.len() != old_len
     }
 
     #[must_use]
     pub fn contains(&self, id: Id) -> bool {
-        self.tasks.iter().any(|task| task.identifier == id)
+        self.tasks.iter().any(|entry| entry.task.id() == id)
     }
 }
 
@@ -114,9 +143,9 @@ where
         let next_time = self
             .tasks
             .iter_mut()
-            .filter_map(|task| {
-                task.update_next_time(min_next_time);
-                task.next_time
+            .filter_map(|entry| {
+                entry.update_next_time(min_next_time);
+                entry.next_time
             })
             .min()?;
 
@@ -128,8 +157,8 @@ where
         let mut next_ids_iter = self
             .tasks
             .iter()
-            .filter(|task| task.next_time == Some(next_time))
-            .map(|task| task.identifier);
+            .filter(|entry| entry.next_time == Some(next_time))
+            .map(|entry| entry.task.id());
 
         // Get the ID of the first task which should be run at `next_time`. We will return this ID
         // now, so the caller can run the task associated with the ID. If there is no such ID
@@ -188,11 +217,11 @@ where
     Tz::Offset: Copy,
 {
     #[must_use]
-    pub fn with(self, task: Task<Id, Tz>) -> Self {
+    pub fn with(self, task: Task<Id>) -> Self {
         Self::from_manual_sleep(self.inner.with(task))
     }
     
-    pub fn insert(&mut self, task: Task<Id, Tz>) -> bool {
+    pub fn insert(&mut self, task: Task<Id>) -> bool {
         self.inner.insert(task)
     }
 

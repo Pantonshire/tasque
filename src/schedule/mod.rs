@@ -7,7 +7,7 @@ use std::ops::RangeInclusive;
 
 use chrono::{DateTime, Datelike, Duration, NaiveDate, Timelike};
 
-use crate::TimeZoneExt;
+use crate::timezone_ext::TimeZoneExt;
 use component::Component;
 
 const MIN_DAYS: u8 = 28;
