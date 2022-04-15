@@ -12,7 +12,7 @@ impl<Id> Task<Id> {
     }
 
     pub fn new_multi_schedule<T: IntoIterator<Item = Schedule>>(id: Id, schedules: T) -> Self {
-        Self::_new(id, Schedules::from_vec(schedules.into_iter().collect()))
+        Self::new_multi_schedule_vec(id, schedules.into_iter().collect())
     }
 
     pub fn new_multi_schedule_vec(id: Id, schedules: Vec<Schedule>) -> Self {
