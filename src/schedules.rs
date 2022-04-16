@@ -124,10 +124,4 @@ mod tests {
             Some(Utc.ymd(2022, 4, 9).and_hms(18, 1, 14))
         );
     }
-
-    #[test]
-    fn test_task_time_buf_small() {
-        use std::mem::size_of;
-        assert!(size_of::<Schedules>() <= size_of::<Vec<Schedule>>());
-    }
 }
